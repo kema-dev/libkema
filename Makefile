@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: jjourdan <jjourdan@student.42lyon.fr>      +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2021/03/22 10:55:11 by jjourdan          #+#    #+#              #
-#    Updated: 2021/04/21 17:27:40 by jjourdan         ###   ########lyon.fr    #
-#                                                                              #
-# **************************************************************************** #
-
 # *******************************    POST-IT    ****************************** #
 #                                                                              #
 #			## $@ 	Le nom de la cible										   #
@@ -20,89 +8,115 @@
 #                                                                              #
 # **************************************************************************** #
 
-NAME		=	my_project
+#Compiler and Linker
+CC			:=	gcc
 
-ARGS		=	foo bar
+#The Target Binary Program
+TARGET		:=	ft_ping
+DEBUGOUT	:=	debug.out
 
-CC			=	gcc
+#The Directories, Source, Includes, Objects, Binary and Resources
+SRCDIR		:=	src
+INCDIR		:=	inc
+OBJDIR		:=	obj
+TARGETDIR	:=	bin
+SRCEXT		:=	c
+HDEXT		:=	h
+OBJEXT		:=	o
+LIBDIR		:=	libs/libkema
+ARG			:=	
 
-RM			=	rm -f
+#Flags, Libraries and Includes
+CFLAGS		:=	-Wall -Wextra -Werror
+DEBUGFLAG	:=	-Wall -Wextra -fsanitize=address
+LIB			:=	$(OBJDIR)/libkema.a
+INC			:=	-I$(INCDIR)
+SPECIALLIB	:=	
 
-FLAGS		=	-Wall -Wextra -Werror
+#---------------------------------------------------------------------------------
+#DO NOT EDIT BELOW THIS LINE
+#---------------------------------------------------------------------------------
+HEADERS		:=	$(shell find $(INCDIR) -type f -name *.$(HDEXT))
+SOURCES		:=	$(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+OBJECTS		:=	$(patsubst $(SRCDIR)/%,$(OBJDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
-DEBUG_FLAGS	=	-Wall -Wextra -fsanitize=address
+#Defauilt Make
+all:	libs $(TARGETDIR)/$(TARGET)
 
-DEBUG_OUT	=	debug.out
+#Remake
+re:	fclean all
 
-INCS_DIR	=	includes/
+libs:	directories
+	@make -C $(LIBDIR)
+	@cp $(LIBDIR)/*.a $(OBJDIR)/
 
-INCS		=	my_project.h
+#Make the Directories
+directories:
+	@mkdir -p $(TARGETDIR)
+	@mkdir -p $(OBJDIR)
 
-INCS_FULL	=	$(addprefix $(INCS_DIR), $(INCS))
+#Clean only Objecst
+clean:
+	@$(RM) -rf $(OBJDIR)
+	@make -C $(LIBDIR) clean
 
-SRCS_DIR	=	sources/
+#Full Clean, Objects and Binaries
+fclean:	clean
+	@$(RM) -rf $(TARGETDIR)
+	@make -C $(LIBDIR) fclean
 
-SRCS		=	main.c
+clean_main:
+	@$(RM) -rf $(OBJDIR)
+	@$(RM) -rf $(TARGETDIR)
 
-SRCS_FULL	=	$(addprefix $(SRCS_DIR), $(SRCS))
+remain: clean_main all
 
-OBJS		=	$(SRCS_FULL:.c=.o)
-
-MAKE_SUB	=	make -C
-
-LIBS_DIR	=	libs/
-
-LIBS		=	libkema/
-
-LIBS_FULL	=	$(addprefix $(LIBS_DIR), $(LIBS))
-
-LIBS_FILES	=	libs/libkema/libkema.a
-
-all:			libraries $(NAME)
-
-%.o: 			%.c $(INCS_FULL)
-				$(CC) $(FLAGS) -I $(INCS_DIR) -c $< -o $@
-
-$(NAME): 		$(OBJS)
-				$(CC) -I $(INCS_DIR) $(OBJS) $(LIBS_FILES) -o $(NAME)
-
-libraries:
-				$(foreach lib,$(LIBS_FULL), $(MAKE_SUB) $(lib))
-
-norme:			fclean
-				printf "\033c"
-				$(foreach lib,$(LIBS_FULL), norminette $(lib))
-				norminette $(SRCS_DIR)
-				norminette $(INCS_DIR)
+norme:	fclean
+	@printf "\ec"
+	@norminette
 
 norme_check:	fclean
-				printf "\033c"
-				$(foreach lib,$(LIBS_FULL), norminette $(lib)) | grep " KO!" | wc -l
-				norminette $(SRCS_DIR) | grep " KO!" | wc -l
-				norminette $(INCS_DIR) | grep " KO!" | wc -l
+	@printf "\ec"
+	@norminette | grep "Error" | wc -l
 
-debug:			libraries $(OBJS)
-				$(CC) -I $(INCS_DIR) $(DEBUG_FLAGS) $(OBJS) $(LIBS_FILES) -o $(DEBUG_OUT)
-				printf "\033c"
-				./$(DEBUG_OUT) $(ARGS)
+debug:	libs $(OBJECTS)
+	$(CC) $(DEBUGFLAG) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(DEBUGOUT) $(OBJECTS) $(LIB)
+	@clear
+	./$(TARGETDIR)/$(DEBUGOUT) $(ARG)
 
-valgrind:		all
-				printf "\ec"
-				valgrind --leak-check=full --show-leak-kinds=all ./$(NAME) $(ARGS) 
+ddebug:	libs $(OBJECTS)
+	$(CC) $(DEBUGFLAG) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(DEBUGOUT) $(OBJECTS) $(LIB)
+	@printf "\ec"
+	./$(TARGETDIR)/$(DEBUGOUT) $(ARG)
 
-leaks:			all
-				printf "\033c"
-				leaks --atExit -- ./$(NAME) $(ARGS)
+test:	libs $(OBJECTS)
+	$(CC) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
+	@clear
+	./$(TARGETDIR)/$(TARGET)
 
-clean:
-				$(RM) $(OBJS)
-				$(foreach lib_dir,$(LIBS_FULL), $(MAKE_SUB) $(lib_dir) clean)
+ttest:	libs $(OBJECTS)
+	$(CC) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
+	@printf "\ec"
+	./$(TARGETDIR)/$(TARGET)
 
-fclean:			clean
-				$(RM) $(NAME)
-				$(RM) $(DEBUG_OUT)
-				$(foreach lib_dir,$(LIBS_FULL), $(MAKE_SUB) $(lib_dir) fclean)
+valgrind:	libs $(OBJECTS)
+	$(CC) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
+	@clear
+	valgrind --leak-check=full --show-leak-kinds=all ./$(TARGETDIR)/$(TARGET) $(ARG) 
 
-re:				fclean all
+leaks:	libs $(OBJECTS)
+	$(CC) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
+	@clear
+	leaks --atExit -- ./$(TARGETDIR)/$(TARGET) $(ARG)
 
-.PHONY: all, libs, norme, norme_check, debug, valgrind, leaks, clean, fclean, re
+#Link
+$(TARGETDIR)/$(TARGET): $(OBJECTS)
+	$(CC) $(INC) $(SPECIALLIB) -o $(TARGETDIR)/$(TARGET) $^ $(LIB)
+
+#Compile
+$(OBJDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) $(HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
+
+#Non-File Targets
+.PHONY: all re libs directories clean fclean clean_main remain norme norme_check debug test valgrind leaks
