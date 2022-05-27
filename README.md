@@ -1,6 +1,9 @@
 # libkema template
 
+This is a very basic template for standard 42 C projects.
+
 Don't forget to :
+
 - rename my_project.h
 - add errcodes in my_project.h
 - change include path in libkema.h to match the new name
